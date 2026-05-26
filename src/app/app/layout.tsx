@@ -2,6 +2,12 @@ import Link from "next/link";
 import { requireOnboardedProfile } from "@/lib/auth/dal";
 import { logout } from "../(auth)/actions";
 
+const NAV = [
+  { href: "/app", label: "Home" },
+  { href: "/app/bodyweight", label: "Bodyweight" },
+  { href: "/app/profile", label: "Profile" },
+];
+
 export default async function AppLayout({
   children,
 }: {
@@ -28,6 +34,17 @@ export default async function AppLayout({
           </form>
         </div>
       </header>
+      <nav className="flex gap-6 border-b border-zinc-200 px-6 text-sm">
+        {NAV.map((item) => (
+          <Link
+            key={item.href}
+            href={item.href}
+            className="border-b-2 border-transparent py-3 text-zinc-500 hover:text-black"
+          >
+            {item.label}
+          </Link>
+        ))}
+      </nav>
       <main className="flex flex-1 flex-col">{children}</main>
     </div>
   );
