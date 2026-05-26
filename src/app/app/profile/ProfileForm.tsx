@@ -9,6 +9,10 @@ import {
   type Units,
 } from "@/lib/units";
 import { GOAL_TYPES } from "@/lib/validation";
+import {
+  availabilityColor,
+  useUsernameAvailability,
+} from "@/lib/useUsernameAvailability";
 import { updateAvatar, updateProfile } from "./actions";
 
 type Gender = "male" | "female" | "other" | "prefer_not_to_say";
@@ -61,6 +65,8 @@ export default function ProfileForm({
   const fileRef = useRef<HTMLInputElement>(null);
 
   const [username, setUsername] = useState(initial.username);
+  const { status: usernameStatus, message: usernameMessage } =
+    useUsernameAvailability(username, initial.username.trim().toLowerCase());
   const [displayName, setDisplayName] = useState(initial.displayName);
   const [bio, setBio] = useState(initial.bio);
   const [gender, setGender] = useState<Gender>(initial.gender);
@@ -192,6 +198,15 @@ export default function ProfileForm({
             className="w-full bg-transparent py-3 pl-1 text-lg outline-none placeholder:text-zinc-400"
           />
         </div>
+        {usernameStatus !== "idle" && (
+          <p className={`text-xs ${availabilityColor(usernameStatus)}`}>
+            {usernameStatus === "checking"
+              ? "Checking availability…"
+              : usernameStatus === "available"
+                ? "✓ Available"
+                : usernameMessage}
+          </p>
+        )}
       </Field>
 
       <Field label="Display name">
@@ -309,7 +324,16 @@ export default function ProfileForm({
             Saved.
           </p>
         )}
-        <Button onClick={save} disabled={pending || avatarBusy}>
+        <Button
+          onClick={save}
+          disabled={
+            pending ||
+            avatarBusy ||
+            usernameStatus === "taken" ||
+            usernameStatus === "invalid" ||
+            usernameStatus === "checking"
+          }
+        >
           {pending ? "Saving…" : "Save changes"}
         </Button>
       </div>

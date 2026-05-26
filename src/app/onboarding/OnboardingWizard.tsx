@@ -4,6 +4,10 @@ import { useMemo, useState } from "react";
 import { Button, FormError, inputClasses } from "@/components/ui";
 import { feetInchesToCm, lbsToKg } from "@/lib/units";
 import { ageFromDob, GOAL_TYPES } from "@/lib/validation";
+import {
+  availabilityColor,
+  useUsernameAvailability,
+} from "@/lib/useUsernameAvailability";
 import { checkUsername, completeOnboarding } from "./actions";
 
 type Units = "metric" | "imperial";
@@ -57,6 +61,9 @@ export default function OnboardingWizard({
   const [experience, setExperience] = useState<Experience | "">("");
   const [goals, setGoals] = useState<GoalType[]>([]);
 
+  const { status: usernameStatus, message: usernameMessage } =
+    useUsernameAvailability(username);
+
   const back = () => {
     setError(undefined);
     setStep((s) => Math.max(0, s - 1));
@@ -109,12 +116,15 @@ export default function OnboardingWizard({
     if (!stepValid()) return;
     // Username availability is checked server-side before advancing.
     if (step === 0) {
-      setBusy(true);
-      const result = await checkUsername(username);
-      setBusy(false);
-      if (!result.available) {
-        setError(result.error ?? "That username isn't available.");
-        return;
+      // The live check already confirmed it; otherwise verify before advancing.
+      if (usernameStatus !== "available") {
+        setBusy(true);
+        const result = await checkUsername(username);
+        setBusy(false);
+        if (!result.available) {
+          setError(result.error ?? "That username isn't available.");
+          return;
+        }
       }
     }
     next();
@@ -167,8 +177,14 @@ export default function OnboardingWizard({
                 className="w-full bg-transparent py-3 pl-1 text-lg outline-none placeholder:text-zinc-400"
               />
             </div>
-            <p className="mt-2 text-xs text-zinc-400">
-              3–30 characters: lowercase letters, numbers, underscores.
+            <p className={`mt-2 text-xs ${availabilityColor(usernameStatus)}`}>
+              {usernameStatus === "checking"
+                ? "Checking availability…"
+                : usernameStatus === "available"
+                  ? "✓ Available"
+                  : usernameStatus === "taken" || usernameStatus === "invalid"
+                    ? usernameMessage
+                    : "3–30 characters: lowercase letters, numbers, underscores."}
             </p>
           </Step>
         )}
@@ -320,7 +336,14 @@ export default function OnboardingWizard({
         {step < STEP_COUNT - 1 ? (
           <Button
             onClick={handleNext}
-            disabled={!stepValid() || busy}
+            disabled={
+              !stepValid() ||
+              busy ||
+              (step === 0 &&
+                (usernameStatus === "taken" ||
+                  usernameStatus === "checking" ||
+                  usernameStatus === "invalid"))
+            }
             className="flex-1"
           >
             {busy ? "Checking…" : "Continue"}
