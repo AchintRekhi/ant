@@ -27,6 +27,13 @@ export default async function DashboardPage() {
         Welcome, {profile.display_name ?? profile.username}.
       </h1>
 
+      <Link
+        href="/app/workout"
+        className="mt-6 block rounded-lg bg-black px-4 py-3 text-center font-medium text-white hover:bg-zinc-800"
+      >
+        Start a workout →
+      </Link>
+
       {due && (
         <Link
           href="/app/bodyweight"

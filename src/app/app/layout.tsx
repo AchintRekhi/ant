@@ -4,6 +4,8 @@ import { logout } from "../(auth)/actions";
 
 const NAV = [
   { href: "/app", label: "Home" },
+  { href: "/app/workout", label: "Workout" },
+  { href: "/app/progress", label: "Progress" },
   { href: "/app/routines", label: "Routines" },
   { href: "/app/exercises", label: "Exercises" },
   { href: "/app/bodyweight", label: "Bodyweight" },
@@ -36,12 +38,12 @@ export default async function AppLayout({
           </form>
         </div>
       </header>
-      <nav className="flex gap-6 border-b border-zinc-200 px-6 text-sm">
+      <nav className="flex gap-6 overflow-x-auto border-b border-zinc-200 px-6 text-sm">
         {NAV.map((item) => (
           <Link
             key={item.href}
             href={item.href}
-            className="border-b-2 border-transparent py-3 text-zinc-500 hover:text-black"
+            className="whitespace-nowrap border-b-2 border-transparent py-3 text-zinc-500 hover:text-black"
           >
             {item.label}
           </Link>

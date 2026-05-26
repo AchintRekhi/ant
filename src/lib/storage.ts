@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 // (not a URL); we mint a short-lived signed URL whenever we need to render it.
 
 export const AVATAR_BUCKET = "avatars";
+export const WORKOUT_PHOTO_BUCKET = "workout-photos";
 
 const SIGNED_URL_TTL_SECONDS = 60 * 60; // 1 hour — re-minted on every render.
 
@@ -16,12 +17,20 @@ export function avatarObjectPath(userId: string): string {
   return `${userId}/avatar`;
 }
 
-/** Turn a stored avatar object path into a signed URL the browser can load. */
-export async function getAvatarUrl(path: string | null): Promise<string | null> {
+/** Turn a stored object path into a signed URL the browser can load. */
+async function signedUrl(bucket: string, path: string | null): Promise<string | null> {
   if (!path) return null;
   const supabase = await createClient();
   const { data } = await supabase.storage
-    .from(AVATAR_BUCKET)
+    .from(bucket)
     .createSignedUrl(path, SIGNED_URL_TTL_SECONDS);
   return data?.signedUrl ?? null;
+}
+
+export function getAvatarUrl(path: string | null): Promise<string | null> {
+  return signedUrl(AVATAR_BUCKET, path);
+}
+
+export function getWorkoutPhotoUrl(path: string | null): Promise<string | null> {
+  return signedUrl(WORKOUT_PHOTO_BUCKET, path);
 }
