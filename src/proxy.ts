@@ -2,11 +2,21 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 /**
- * Next.js 16 renamed `middleware` to `proxy` (runs on the Node runtime).
- * This keeps the Supabase auth session fresh on every request by reading and
- * re-writing the auth cookies. Route protection (redirecting unauthenticated
- * users) will be layered on here in Phase 1.
+ * Next.js 16 renamed `middleware` to `proxy` (Node runtime). This:
+ *   1. Keeps the Supabase auth session fresh by reading/rewriting auth cookies.
+ *   2. Does optimistic route protection — redirect logged-out users away from
+ *      protected areas, and logged-in users away from the auth pages.
+ *
+ * Onboarding-complete gating is NOT done here (it needs a DB read); that lives
+ * in the /app layout via the DAL. Proxy only checks session presence.
  */
+
+// Areas that require a session.
+const PROTECTED_PREFIXES = ["/app", "/onboarding"];
+// Pages a signed-in user shouldn't see. (/reset-password is excluded — it runs
+// inside the recovery session.)
+const AUTH_PAGES = ["/login", "/signup", "/forgot-password"];
+
 export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request });
 
@@ -32,9 +42,38 @@ export async function proxy(request: NextRequest) {
   );
 
   // Touch the session so expired tokens are refreshed and cookies updated.
-  await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const path = request.nextUrl.pathname;
+  const isProtected = PROTECTED_PREFIXES.some(
+    (p) => path === p || path.startsWith(`${p}/`),
+  );
+  const isAuthPage = AUTH_PAGES.includes(path);
+
+  if (!user && isProtected) {
+    return redirectKeepingCookies(request, response, "/login");
+  }
+  if (user && isAuthPage) {
+    return redirectKeepingCookies(request, response, "/app");
+  }
 
   return response;
+}
+
+// Redirect while preserving any auth cookies written during session refresh.
+function redirectKeepingCookies(
+  request: NextRequest,
+  refreshed: NextResponse,
+  pathname: string,
+) {
+  const url = request.nextUrl.clone();
+  url.pathname = pathname;
+  url.search = "";
+  const redirect = NextResponse.redirect(url);
+  refreshed.cookies.getAll().forEach((cookie) => redirect.cookies.set(cookie));
+  return redirect;
 }
 
 export const config = {
