@@ -1,5 +1,5 @@
-// Generated from the Supabase schema via the Supabase MCP
-// (`generate_typescript_types`). Regenerate after every migration; do not edit by hand.
+// Generated from the Supabase schema via the Management API typegen endpoint
+// (GET /v1/projects/<ref>/types/typescript). Regenerate after every migration; do not edit by hand.
 
 export type Json =
   | string
@@ -35,6 +35,33 @@ export type Database = {
           recorded_at?: string
           user_id?: string
           weight_kg?: number
+        }
+        Relationships: []
+      }
+      exercises: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          is_custom: boolean
+          muscle_group: Database["public"]["Enums"]["muscle_group"]
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_custom?: boolean
+          muscle_group: Database["public"]["Enums"]["muscle_group"]
+          name: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_custom?: boolean
+          muscle_group?: Database["public"]["Enums"]["muscle_group"]
+          name?: string
         }
         Relationships: []
       }
@@ -140,6 +167,213 @@ export type Database = {
         }
         Relationships: []
       }
+      routine_day_exercises: {
+        Row: {
+          exercise_id: string
+          id: string
+          routine_day_id: string
+          sort_order: number
+          target_reps: number | null
+          target_sets: number | null
+        }
+        Insert: {
+          exercise_id: string
+          id?: string
+          routine_day_id: string
+          sort_order?: number
+          target_reps?: number | null
+          target_sets?: number | null
+        }
+        Update: {
+          exercise_id?: string
+          id?: string
+          routine_day_id?: string
+          sort_order?: number
+          target_reps?: number | null
+          target_sets?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "routine_day_exercises_exercise_id_fkey"
+            columns: ["exercise_id"]
+            isOneToOne: false
+            referencedRelation: "exercises"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "routine_day_exercises_routine_day_id_fkey"
+            columns: ["routine_day_id"]
+            isOneToOne: false
+            referencedRelation: "routine_days"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      routine_days: {
+        Row: {
+          day_of_week: number
+          id: string
+          label: string | null
+          routine_id: string
+        }
+        Insert: {
+          day_of_week: number
+          id?: string
+          label?: string | null
+          routine_id: string
+        }
+        Update: {
+          day_of_week?: number
+          id?: string
+          label?: string | null
+          routine_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "routine_days_routine_id_fkey"
+            columns: ["routine_id"]
+            isOneToOne: false
+            referencedRelation: "routines"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      routines: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      session_exercises: {
+        Row: {
+          exercise_id: string
+          id: string
+          session_id: string
+          sort_order: number
+        }
+        Insert: {
+          exercise_id: string
+          id?: string
+          session_id: string
+          sort_order?: number
+        }
+        Update: {
+          exercise_id?: string
+          id?: string
+          session_id?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "session_exercises_exercise_id_fkey"
+            columns: ["exercise_id"]
+            isOneToOne: false
+            referencedRelation: "exercises"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "session_exercises_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "workout_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sets: {
+        Row: {
+          id: string
+          is_pr: boolean
+          reps: number
+          session_exercise_id: string
+          set_number: number
+          weight_kg: number
+        }
+        Insert: {
+          id?: string
+          is_pr?: boolean
+          reps: number
+          session_exercise_id: string
+          set_number: number
+          weight_kg?: number
+        }
+        Update: {
+          id?: string
+          is_pr?: boolean
+          reps?: number
+          session_exercise_id?: string
+          set_number?: number
+          weight_kg?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sets_session_exercise_id_fkey"
+            columns: ["session_exercise_id"]
+            isOneToOne: false
+            referencedRelation: "session_exercises"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workout_sessions: {
+        Row: {
+          created_at: string
+          ended_at: string | null
+          id: string
+          notes: string | null
+          photo_url: string | null
+          routine_day_id: string | null
+          started_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          ended_at?: string | null
+          id?: string
+          notes?: string | null
+          photo_url?: string | null
+          routine_day_id?: string | null
+          started_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          ended_at?: string | null
+          id?: string
+          notes?: string | null
+          photo_url?: string | null
+          routine_day_id?: string | null
+          started_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workout_sessions_routine_day_id_fkey"
+            columns: ["routine_day_id"]
+            isOneToOne: false
+            referencedRelation: "routine_days"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -156,6 +390,16 @@ export type Database = {
         | "build_muscle"
         | "get_stronger"
         | "stay_consistent"
+      muscle_group:
+        | "chest"
+        | "back"
+        | "shoulders"
+        | "arms"
+        | "legs"
+        | "core"
+        | "cardio"
+        | "full_body"
+        | "other"
       privacy_level: "public" | "private"
       units_pref: "metric" | "imperial"
     }
@@ -294,8 +538,20 @@ export const Constants = {
         "get_stronger",
         "stay_consistent",
       ],
+      muscle_group: [
+        "chest",
+        "back",
+        "shoulders",
+        "arms",
+        "legs",
+        "core",
+        "cardio",
+        "full_body",
+        "other",
+      ],
       privacy_level: ["public", "private"],
       units_pref: ["metric", "imperial"],
     },
   },
 } as const
+
