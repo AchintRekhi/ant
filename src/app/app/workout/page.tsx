@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getProfile } from "@/lib/auth/dal";
 import { createClient } from "@/lib/supabase/server";
 import { weekdayLabel, todayWeekday } from "@/lib/days";
+import { activeSeconds, formatDuration } from "@/lib/duration";
 import StartWorkout, { type RoutineOption } from "./StartWorkout";
 
 export default async function WorkoutPage() {
@@ -12,12 +13,13 @@ export default async function WorkoutPage() {
 
   const { data: routinesRaw } = await supabase
     .from("routines")
-    .select("id, name, routine_days ( id, day_of_week, label )")
+    .select("id, name, is_active, routine_days ( id, day_of_week, label )")
     .order("name");
 
   const routines: RoutineOption[] = (routinesRaw ?? []).map((r) => ({
     id: r.id,
     name: r.name,
+    isActive: r.is_active,
     days: (r.routine_days ?? [])
       .map((d) => ({ id: d.id, dayOfWeek: d.day_of_week, label: d.label ?? "" }))
       .sort((a, b) => a.dayOfWeek - b.dayOfWeek),
@@ -26,7 +28,7 @@ export default async function WorkoutPage() {
   const { data: sessions } = await supabase
     .from("workout_sessions")
     .select(
-      `id, started_at, ended_at,
+      `id, started_at, ended_at, paused_at, total_paused_seconds,
        routine_days ( label ),
        session_exercises ( id, sets ( is_pr ) )`,
     )
@@ -56,6 +58,19 @@ export default async function WorkoutPage() {
                 0,
               ) ?? 0;
             const inProgress = !s.ended_at;
+            const duration = inProgress
+              ? null
+              : formatDuration(
+                  activeSeconds(
+                    {
+                      startedAt: s.started_at,
+                      endedAt: s.ended_at,
+                      pausedAt: s.paused_at,
+                      totalPausedSeconds: s.total_paused_seconds,
+                    },
+                    Date.now(),
+                  ),
+                );
             return (
               <li key={s.id}>
                 <Link
@@ -74,6 +89,7 @@ export default async function WorkoutPage() {
                     <div className="mt-0.5 text-sm text-zinc-500">
                       {formatDate(s.started_at)} · {exerciseCount} exercise
                       {exerciseCount === 1 ? "" : "s"}
+                      {duration ? ` · ${duration}` : ""}
                     </div>
                   </div>
                   {prCount > 0 && (
@@ -88,7 +104,9 @@ export default async function WorkoutPage() {
         </ul>
       )}
 
-      {routines.some((r) => r.days.some((d) => d.dayOfWeek === today)) && (
+      {routines
+        .find((r) => r.isActive)
+        ?.days.some((d) => d.dayOfWeek === today) && (
         <p className="mt-6 text-xs text-zinc-400">
           Today is {weekdayLabel(today)}.
         </p>

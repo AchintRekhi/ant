@@ -21,7 +21,7 @@ export default async function WorkoutSessionPage({
   const { data: session } = await supabase
     .from("workout_sessions")
     .select(
-      `id, started_at, ended_at, notes, photo_url,
+      `id, started_at, ended_at, paused_at, total_paused_seconds, notes, photo_url,
        routine_days ( label ),
        session_exercises (
          id, exercise_id, sort_order,
@@ -68,6 +68,8 @@ export default async function WorkoutSessionPage({
       sessionId={session.id}
       startedAt={session.started_at}
       endedAt={session.ended_at}
+      pausedAt={session.paused_at}
+      totalPausedSeconds={session.total_paused_seconds}
       title={session.routine_days?.label || "Freestyle"}
       notes={session.notes ?? ""}
       photoUrl={photoUrl}

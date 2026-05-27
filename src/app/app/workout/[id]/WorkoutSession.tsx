@@ -1,19 +1,22 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button, FormError, inputClasses } from "@/components/ui";
 import { kgToLbs, lbsToKg, type Units } from "@/lib/units";
 import type { MuscleGroup } from "@/lib/exercises";
+import { activeSeconds, formatClock } from "@/lib/duration";
 import {
   addSessionExercise,
   addSet,
   deleteSession,
   finishSession,
+  pauseSession,
   removeSessionExercise,
   removeSessionPhoto,
   removeSet,
+  resumeSession,
   saveNotes,
   updateSet,
   uploadSessionPhoto,
@@ -38,6 +41,8 @@ export default function WorkoutSession({
   sessionId,
   startedAt,
   endedAt,
+  pausedAt,
+  totalPausedSeconds,
   title,
   notes,
   photoUrl,
@@ -48,6 +53,8 @@ export default function WorkoutSession({
   sessionId: string;
   startedAt: string;
   endedAt: string | null;
+  pausedAt: string | null;
+  totalPausedSeconds: number;
   title: string;
   notes: string;
   photoUrl: string | null;
@@ -80,10 +87,20 @@ export default function WorkoutSession({
       <div className="mt-3 flex items-baseline justify-between gap-3">
         <h1 className="text-2xl font-bold tracking-tight">{title}</h1>
         <span className="text-sm text-zinc-400">
-          {endedAt ? "Finished" : "In progress"}
+          {endedAt ? "Finished" : pausedAt ? "Paused" : "In progress"}
         </span>
       </div>
       <p className="mt-1 text-sm text-zinc-500">{formatDateTime(startedAt)}</p>
+
+      <SessionTimer
+        sessionId={sessionId}
+        startedAt={startedAt}
+        endedAt={endedAt}
+        pausedAt={pausedAt}
+        totalPausedSeconds={totalPausedSeconds}
+        pending={pending}
+        run={run}
+      />
 
       <FormError message={error} />
 
@@ -145,6 +162,66 @@ export default function WorkoutSession({
           Delete workout
         </button>
       </div>
+    </div>
+  );
+}
+
+/** Live elapsed-time display + Pause/Resume. Ticks once a second while running. */
+function SessionTimer({
+  sessionId,
+  startedAt,
+  endedAt,
+  pausedAt,
+  totalPausedSeconds,
+  pending,
+  run,
+}: {
+  sessionId: string;
+  startedAt: string;
+  endedAt: string | null;
+  pausedAt: string | null;
+  totalPausedSeconds: number;
+  pending: boolean;
+  run: (fn: () => Promise<{ error?: string } | void>) => void;
+}) {
+  const running = !endedAt && !pausedAt;
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    if (!running) return;
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, [running]);
+
+  const seconds = activeSeconds(
+    { startedAt, endedAt, pausedAt, totalPausedSeconds },
+    now,
+  );
+
+  return (
+    <div className="mt-4 flex items-center justify-between rounded-lg border border-zinc-200 px-4 py-3">
+      <div>
+        <div className="font-mono text-2xl font-semibold tabular-nums">
+          {formatClock(seconds)}
+        </div>
+        <div className="text-xs text-zinc-400">
+          {endedAt ? "Total time" : pausedAt ? "Paused" : "Elapsed"}
+        </div>
+      </div>
+      {!endedAt &&
+        (pausedAt ? (
+          <Button onClick={() => run(() => resumeSession(sessionId))} disabled={pending}>
+            Resume
+          </Button>
+        ) : (
+          <Button
+            variant="ghost"
+            onClick={() => run(() => pauseSession(sessionId))}
+            disabled={pending}
+          >
+            Pause
+          </Button>
+        ))}
     </div>
   );
 }

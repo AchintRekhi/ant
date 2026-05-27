@@ -166,13 +166,70 @@ export async function saveNotes(sessionId: string, notes: string): Promise<Worko
   return { ok: true };
 }
 
+/** Pause a running session — freezes the active timer at `paused_at`. */
+export async function pauseSession(sessionId: string): Promise<WorkoutResult> {
+  const supabase = await createClient();
+  const { data: s } = await supabase
+    .from("workout_sessions")
+    .select("paused_at, ended_at")
+    .eq("id", sessionId)
+    .single();
+  if (!s) return { error: "Couldn't find that workout." };
+  // Idempotent: already paused or finished → nothing to do.
+  if (s.ended_at || s.paused_at) return { ok: true };
+
+  const { error } = await supabase
+    .from("workout_sessions")
+    .update({ paused_at: new Date().toISOString() })
+    .eq("id", sessionId);
+  if (error) return { error: "Couldn't pause the workout." };
+
+  revalidatePath(`/app/workout/${sessionId}`);
+  return { ok: true };
+}
+
+/** Resume a paused session — banks the paused stretch into total_paused_seconds. */
+export async function resumeSession(sessionId: string): Promise<WorkoutResult> {
+  const supabase = await createClient();
+  const { data: s } = await supabase
+    .from("workout_sessions")
+    .select("paused_at, total_paused_seconds, ended_at")
+    .eq("id", sessionId)
+    .single();
+  if (!s) return { error: "Couldn't find that workout." };
+  if (s.ended_at || !s.paused_at) return { ok: true };
+
+  const banked = s.total_paused_seconds + secondsSince(s.paused_at);
+  const { error } = await supabase
+    .from("workout_sessions")
+    .update({ paused_at: null, total_paused_seconds: banked })
+    .eq("id", sessionId);
+  if (error) return { error: "Couldn't resume the workout." };
+
+  revalidatePath(`/app/workout/${sessionId}`);
+  return { ok: true };
+}
+
 /** Finish the session (stamp ended_at) and flag PRs across its exercises. */
 export async function finishSession(sessionId: string): Promise<WorkoutResult> {
   const supabase = await createClient();
 
+  // If finishing while paused, fold that open pause into the total and clear it
+  // so the recorded duration excludes it.
+  const { data: s } = await supabase
+    .from("workout_sessions")
+    .select("paused_at, total_paused_seconds")
+    .eq("id", sessionId)
+    .single();
+  const totalPaused = (s?.total_paused_seconds ?? 0) + (s?.paused_at ? secondsSince(s.paused_at) : 0);
+
   const { error } = await supabase
     .from("workout_sessions")
-    .update({ ended_at: new Date().toISOString() })
+    .update({
+      ended_at: new Date().toISOString(),
+      paused_at: null,
+      total_paused_seconds: totalPaused,
+    })
     .eq("id", sessionId);
   if (error) return { error: "Couldn't finish the workout." };
 
@@ -243,6 +300,11 @@ export async function removeSessionPhoto(sessionId: string): Promise<WorkoutResu
 
   revalidatePath(`/app/workout/${sessionId}`);
   return { ok: true };
+}
+
+/** Whole seconds elapsed since an ISO timestamp, never negative. */
+function secondsSince(iso: string): number {
+  return Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 1000));
 }
 
 /** Recompute PRs for a set's exercise, but only once its session is finished. */
