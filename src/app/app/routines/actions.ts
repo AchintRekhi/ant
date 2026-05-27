@@ -34,6 +34,31 @@ export async function createRoutine(name: string): Promise<RoutineResult> {
   redirect(`/app/routines/${data.id}`);
 }
 
+/** Make this the user's single active routine (deactivates the rest). */
+export async function setActiveRoutine(id: string): Promise<RoutineResult> {
+  const supabase = await createClient();
+  const user = await getUser();
+  if (!user) return { error: "Your session expired." };
+
+  // Clear the others first — the partial unique index forbids two active at once.
+  const { error: e1 } = await supabase
+    .from("routines")
+    .update({ is_active: false })
+    .eq("user_id", user.id)
+    .neq("id", id);
+  if (e1) return { error: "Couldn't update your routines." };
+
+  const { error: e2 } = await supabase
+    .from("routines")
+    .update({ is_active: true })
+    .eq("id", id);
+  if (e2) return { error: "Couldn't set the active routine." };
+
+  revalidatePath("/app/routines");
+  revalidatePath("/app/workout");
+  return { ok: true };
+}
+
 export async function renameRoutine(id: string, name: string): Promise<RoutineResult> {
   const parsed = nameSchema.safeParse(name);
   if (!parsed.success) return { error: parsed.error.issues[0].message };

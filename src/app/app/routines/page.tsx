@@ -2,12 +2,13 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { weekdayLabel } from "@/lib/days";
 import NewRoutine from "./NewRoutine";
+import SetActiveButton from "./SetActiveButton";
 
 export default async function RoutinesPage() {
   const supabase = await createClient();
   const { data: routines } = await supabase
     .from("routines")
-    .select("id, name, routine_days(day_of_week)")
+    .select("id, name, is_active, routine_days(day_of_week)")
     .order("created_at", { ascending: true });
 
   return (
@@ -30,18 +31,20 @@ export default async function RoutinesPage() {
               .map((d) => d.day_of_week)
               .sort((a, b) => a - b);
             return (
-              <Link
-                key={r.id}
-                href={`/app/routines/${r.id}`}
-                className="rounded-lg border border-zinc-200 px-4 py-3 hover:border-black"
-              >
-                <div className="font-medium">{r.name}</div>
-                <div className="mt-0.5 text-sm text-zinc-500">
-                  {days.length === 0
-                    ? "No days planned"
-                    : days.map((d) => weekdayLabel(d).slice(0, 3)).join(" · ")}
-                </div>
-              </Link>
+              <div key={r.id} className="flex items-center gap-3">
+                <Link
+                  href={`/app/routines/${r.id}`}
+                  className="flex-1 rounded-lg border border-zinc-200 px-4 py-3 hover:border-black"
+                >
+                  <div className="font-medium">{r.name}</div>
+                  <div className="mt-0.5 text-sm text-zinc-500">
+                    {days.length === 0
+                      ? "No days planned"
+                      : days.map((d) => weekdayLabel(d).slice(0, 3)).join(" · ")}
+                  </div>
+                </Link>
+                <SetActiveButton routineId={r.id} isActive={r.is_active} />
+              </div>
             );
           })
         )}

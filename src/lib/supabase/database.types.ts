@@ -242,6 +242,7 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          is_active: boolean
           name: string
           updated_at: string
           user_id: string
@@ -249,6 +250,7 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
+          is_active?: boolean
           name: string
           updated_at?: string
           user_id: string
@@ -256,6 +258,7 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          is_active?: boolean
           name?: string
           updated_at?: string
           user_id?: string
@@ -339,9 +342,11 @@ export type Database = {
           ended_at: string | null
           id: string
           notes: string | null
+          paused_at: string | null
           photo_url: string | null
           routine_day_id: string | null
           started_at: string
+          total_paused_seconds: number
           user_id: string
         }
         Insert: {
@@ -349,9 +354,11 @@ export type Database = {
           ended_at?: string | null
           id?: string
           notes?: string | null
+          paused_at?: string | null
           photo_url?: string | null
           routine_day_id?: string | null
           started_at?: string
+          total_paused_seconds?: number
           user_id: string
         }
         Update: {
@@ -359,9 +366,11 @@ export type Database = {
           ended_at?: string | null
           id?: string
           notes?: string | null
+          paused_at?: string | null
           photo_url?: string | null
           routine_day_id?: string | null
           started_at?: string
+          total_paused_seconds?: number
           user_id?: string
         }
         Relationships: [
@@ -554,4 +563,3 @@ export const Constants = {
     },
   },
 } as const
-

@@ -91,6 +91,14 @@ export default function RoutineEditor({
         })}
       </div>
 
+      <Button
+        onClick={() => router.push("/app/routines")}
+        disabled={pending}
+        className="mt-8 w-full"
+      >
+        Done
+      </Button>
+
       <button
         type="button"
         onClick={() => {
@@ -99,7 +107,7 @@ export default function RoutineEditor({
           }
         }}
         disabled={pending}
-        className="mt-8 text-sm text-red-600 underline hover:text-red-800 disabled:opacity-40"
+        className="mt-4 text-sm text-red-600 underline hover:text-red-800 disabled:opacity-40"
       >
         Delete routine
       </button>

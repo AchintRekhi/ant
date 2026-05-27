@@ -70,26 +70,24 @@ export default function BodyweightClient({
 
       {/* Add entry */}
       <div className="flex flex-col gap-3">
-        <div className="flex gap-3">
-          <div className="flex flex-1 items-center rounded-lg border border-zinc-300 px-4 focus-within:border-black">
-            <input
-              type="number"
-              inputMode="decimal"
-              value={weight}
-              placeholder={units === "imperial" ? "155" : "70"}
-              onChange={(e) => setWeight(e.target.value)}
-              className="w-full bg-transparent py-3 text-lg outline-none placeholder:text-zinc-400 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
-            />
-            <span className="pl-2 text-lg text-zinc-400">{unitLabel}</span>
-          </div>
+        <label className="flex items-center rounded-lg border border-zinc-300 px-4 focus-within:border-black">
           <input
-            type="date"
-            value={date}
-            max={today()}
-            onChange={(e) => setDate(e.target.value)}
-            className={`${inputClasses} w-auto`}
+            type="number"
+            inputMode="decimal"
+            value={weight}
+            placeholder={units === "imperial" ? "155" : "70"}
+            onChange={(e) => setWeight(e.target.value)}
+            className="w-full bg-transparent py-3 text-lg outline-none placeholder:text-zinc-400 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
           />
-        </div>
+          <span className="pl-2 text-lg text-zinc-400">{unitLabel}</span>
+        </label>
+        <input
+          type="date"
+          value={date}
+          max={today()}
+          onChange={(e) => setDate(e.target.value)}
+          className={inputClasses}
+        />
         <Button onClick={submit} disabled={pending}>
           {pending ? "Saving…" : "Log weight"}
         </Button>

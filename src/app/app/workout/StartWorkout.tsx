@@ -8,6 +8,7 @@ import { startSession } from "./actions";
 export type RoutineOption = {
   id: string;
   name: string;
+  isActive: boolean;
   days: { id: string; dayOfWeek: number; label: string }[];
 };
 
@@ -30,12 +31,11 @@ export default function StartWorkout({
     });
   };
 
-  // Suggest any routine day scheduled for today.
-  const todaySuggestions = routines.flatMap((r) =>
-    r.days
-      .filter((d) => d.dayOfWeek === today)
-      .map((d) => ({ routineName: r.name, ...d })),
-  );
+  // Suggest today's day from the active routine only.
+  const active = routines.find((r) => r.isActive);
+  const todaySuggestions = (active?.days ?? [])
+    .filter((d) => d.dayOfWeek === today)
+    .map((d) => ({ routineName: active!.name, ...d }));
 
   return (
     <div className="flex flex-col gap-4">
