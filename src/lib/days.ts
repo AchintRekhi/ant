@@ -21,3 +21,14 @@ export function todayWeekday(timezone: string): number {
   ).getDay();
   return (sunday0 + 6) % 7;
 }
+
+/** The calendar date ("YYYY-MM-DD") at `date` in the given timezone. */
+export function localDateInTz(date: Date, timezone: string): string {
+  // en-CA formats as YYYY-MM-DD.
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: timezone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(date);
+}

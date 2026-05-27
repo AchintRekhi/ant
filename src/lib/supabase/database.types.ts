@@ -17,6 +17,71 @@ export type Database = {
   }
   public: {
     Tables: {
+      activity_log: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          local_date: string
+          session_id: string | null
+          source: Database["public"]["Enums"]["activity_source"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          local_date: string
+          session_id?: string | null
+          source: Database["public"]["Enums"]["activity_source"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          local_date?: string
+          session_id?: string | null
+          source?: Database["public"]["Enums"]["activity_source"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activity_log_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "workout_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      badges: {
+        Row: {
+          code: string
+          description: string
+          kind: string
+          name: string
+          sort_order: number
+          threshold: number | null
+        }
+        Insert: {
+          code: string
+          description: string
+          kind: string
+          name: string
+          sort_order?: number
+          threshold?: number | null
+        }
+        Update: {
+          code?: string
+          description?: string
+          kind?: string
+          name?: string
+          sort_order?: number
+          threshold?: number | null
+        }
+        Relationships: []
+      }
       body_weights: {
         Row: {
           id: string
@@ -336,6 +401,32 @@ export type Database = {
           },
         ]
       }
+      user_badges: {
+        Row: {
+          badge_code: string
+          earned_at: string
+          user_id: string
+        }
+        Insert: {
+          badge_code: string
+          earned_at?: string
+          user_id: string
+        }
+        Update: {
+          badge_code?: string
+          earned_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_badges_badge_code_fkey"
+            columns: ["badge_code"]
+            isOneToOne: false
+            referencedRelation: "badges"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
       workout_sessions: {
         Row: {
           created_at: string
@@ -391,6 +482,7 @@ export type Database = {
       is_username_available: { Args: { candidate: string }; Returns: boolean }
     }
     Enums: {
+      activity_source: "session" | "quick"
       experience_level: "beginner" | "intermediate" | "advanced"
       gender: "male" | "female" | "other" | "prefer_not_to_say"
       goal_status: "active" | "achieved" | "abandoned"
@@ -538,6 +630,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      activity_source: ["session", "quick"],
       experience_level: ["beginner", "intermediate", "advanced"],
       gender: ["male", "female", "other", "prefer_not_to_say"],
       goal_status: ["active", "achieved", "abandoned"],

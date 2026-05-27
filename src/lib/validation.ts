@@ -26,6 +26,15 @@ export const GOAL_TYPES = [
   "stay_consistent",
 ] as const;
 
+export type GoalType = (typeof GOAL_TYPES)[number];
+
+export const GOAL_LABELS: Record<GoalType, string> = {
+  lose_weight: "Lose weight",
+  build_muscle: "Build muscle",
+  get_stronger: "Get stronger",
+  stay_consistent: "Stay consistent",
+};
+
 /** Payload the onboarding wizard submits. Height/weight arrive normalized to metric. */
 export const onboardingSchema = z.object({
   username: usernameSchema,

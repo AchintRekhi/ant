@@ -28,8 +28,20 @@ export default async function DashboardPage() {
       </h1>
 
       <Link
+        href="/app/activity"
+        className="mt-6 flex items-center justify-between rounded-lg border border-black bg-zinc-50 px-5 py-4 hover:bg-zinc-100"
+      >
+        <span className="text-2xl font-bold tabular-nums">
+          🔥 {profile.current_streak}
+        </span>
+        <span className="text-sm text-zinc-500">
+          day{profile.current_streak === 1 ? "" : "s"} streak · log activity →
+        </span>
+      </Link>
+
+      <Link
         href="/app/workout"
-        className="mt-6 block rounded-lg bg-black px-4 py-3 text-center font-medium text-white hover:bg-zinc-800"
+        className="mt-4 block rounded-lg bg-black px-4 py-3 text-center font-medium text-white hover:bg-zinc-800"
       >
         Start a workout →
       </Link>
@@ -61,9 +73,6 @@ export default async function DashboardPage() {
         <Row label="Privacy" value={capitalize(profile.privacy)} />
       </dl>
 
-      <p className="mt-6 text-sm text-zinc-400">
-        Routines and workout logging arrive in the next phase.
-      </p>
     </div>
   );
 }

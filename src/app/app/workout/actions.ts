@@ -4,8 +4,11 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
-import { getUser } from "@/lib/auth/dal";
+import { getUser, getProfile } from "@/lib/auth/dal";
 import { recomputePRsForExercises } from "@/lib/pr";
+import { recomputeStreak } from "@/lib/streak";
+import { evaluateBadges } from "@/lib/badges";
+import { localDateInTz } from "@/lib/days";
 
 export type WorkoutResult = { error?: string; ok?: boolean };
 
@@ -239,7 +242,29 @@ export async function finishSession(sessionId: string): Promise<WorkoutResult> {
     .eq("session_id", sessionId);
   await recomputePRsForExercises(supabase, (ses ?? []).map((s) => s.exercise_id));
 
+  // A finished session counts toward the activity streak (one row per session).
+  const profile = await getProfile();
+  if (profile) {
+    const { data: existing } = await supabase
+      .from("activity_log")
+      .select("id")
+      .eq("session_id", sessionId)
+      .maybeSingle();
+    if (!existing) {
+      await supabase.from("activity_log").insert({
+        user_id: profile.id,
+        local_date: localDateInTz(new Date(), profile.timezone),
+        source: "session",
+        session_id: sessionId,
+      });
+    }
+    await recomputeStreak(supabase, profile.id, profile.timezone);
+    await evaluateBadges(supabase, profile.id);
+  }
+
   revalidatePath("/app/workout");
+  revalidatePath("/app/activity");
+  revalidatePath("/app");
   revalidatePath(`/app/workout/${sessionId}`);
   redirect(`/app/workout/${sessionId}`);
 }
@@ -258,7 +283,14 @@ export async function deleteSession(sessionId: string): Promise<WorkoutResult> {
   if (error) return { error: "Couldn't delete the workout." };
 
   await recomputePRsForExercises(supabase, exerciseIds);
+
+  // The session's activity_log row cascaded away — recompute the streak.
+  const profile = await getProfile();
+  if (profile) await recomputeStreak(supabase, profile.id, profile.timezone);
+
   revalidatePath("/app/workout");
+  revalidatePath("/app/activity");
+  revalidatePath("/app");
   redirect("/app/workout");
 }
 
