@@ -32,7 +32,16 @@ export default function BodyweightClient({
   const due = sinceLast === null || sinceLast >= WEIGH_IN_INTERVAL_DAYS;
 
   // Chart wants oldest → newest, with at least two points to draw a line.
-  const points: WeightPoint[] = [...entries]
+  // Two entries on the same calendar day land on the same `t` (we stamp dates
+  // at noon UTC), which Recharts uses inside its tick keys — duplicates would
+  // crash the keying. Collapse to one point per day, keeping the most recent
+  // entry's value (entries is newest-first, so the first one wins).
+  const byDay = new Map<string, WeightEntry>();
+  for (const e of entries) {
+    const day = e.recordedAt.slice(0, 10); // YYYY-MM-DD
+    if (!byDay.has(day)) byDay.set(day, e);
+  }
+  const points: WeightPoint[] = [...byDay.values()]
     .reverse()
     .map((e) => ({ t: new Date(e.recordedAt).getTime(), value: e.displayWeight }));
 
