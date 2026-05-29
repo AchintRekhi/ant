@@ -82,6 +82,24 @@ export type Database = {
         }
         Relationships: []
       }
+      blocks: {
+        Row: {
+          blocked_id: string
+          blocker_id: string
+          created_at: string
+        }
+        Insert: {
+          blocked_id: string
+          blocker_id: string
+          created_at?: string
+        }
+        Update: {
+          blocked_id?: string
+          blocker_id?: string
+          created_at?: string
+        }
+        Relationships: []
+      }
       body_weights: {
         Row: {
           id: string
@@ -127,6 +145,27 @@ export type Database = {
           is_custom?: boolean
           muscle_group?: Database["public"]["Enums"]["muscle_group"]
           name?: string
+        }
+        Relationships: []
+      }
+      follows: {
+        Row: {
+          created_at: string
+          follower_id: string
+          following_id: string
+          status: Database["public"]["Enums"]["follow_status"]
+        }
+        Insert: {
+          created_at?: string
+          follower_id: string
+          following_id: string
+          status?: Database["public"]["Enums"]["follow_status"]
+        }
+        Update: {
+          created_at?: string
+          follower_id?: string
+          following_id?: string
+          status?: Database["public"]["Enums"]["follow_status"]
         }
         Relationships: []
       }
@@ -479,11 +518,23 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      can_view_user: { Args: { target: string }; Returns: boolean }
       is_username_available: { Args: { candidate: string }; Returns: boolean }
+      search_users: {
+        Args: { max_results?: number; q: string }
+        Returns: {
+          avatar_url: string
+          display_name: string
+          id: string
+          privacy: Database["public"]["Enums"]["privacy_level"]
+          username: string
+        }[]
+      }
     }
     Enums: {
       activity_source: "session" | "quick"
       experience_level: "beginner" | "intermediate" | "advanced"
+      follow_status: "pending" | "accepted"
       gender: "male" | "female" | "other" | "prefer_not_to_say"
       goal_status: "active" | "achieved" | "abandoned"
       goal_type:
@@ -632,6 +683,7 @@ export const Constants = {
     Enums: {
       activity_source: ["session", "quick"],
       experience_level: ["beginner", "intermediate", "advanced"],
+      follow_status: ["pending", "accepted"],
       gender: ["male", "female", "other", "prefer_not_to_say"],
       goal_status: ["active", "achieved", "abandoned"],
       goal_type: [

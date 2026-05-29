@@ -10,6 +10,8 @@ const NAV = [
   { href: "/app/routines", label: "Routines" },
   { href: "/app/exercises", label: "Exercises" },
   { href: "/app/bodyweight", label: "Bodyweight" },
+  { href: "/app/explore", label: "Explore" },
+  { href: "/app/social", label: "People" },
   { href: "/app/profile", label: "Profile" },
 ];
 

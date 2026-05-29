@@ -18,6 +18,14 @@ export default async function DashboardPage() {
     .limit(1)
     .maybeSingle();
 
+  // Surface pending follow requests on the home tile so they're not buried
+  // behind the People tab on a private account.
+  const { count: pendingRequests } = await supabase
+    .from("follows")
+    .select("*", { count: "exact", head: true })
+    .eq("following_id", profile.id)
+    .eq("status", "pending");
+
   const age = profile.dob ? ageFromDob(profile.dob) : null;
   const due = weighInDue(latest?.recorded_at);
 
@@ -56,6 +64,16 @@ export default async function DashboardPage() {
             : "Log your first weigh-in to start your trend →"}
         </Link>
       )}
+
+      {pendingRequests ? (
+        <Link
+          href="/app/social?tab=requests"
+          className="mt-4 block rounded-lg border border-black bg-zinc-50 px-4 py-3 text-sm hover:bg-zinc-100"
+        >
+          {pendingRequests} pending follow request
+          {pendingRequests === 1 ? "" : "s"} →
+        </Link>
+      ) : null}
 
       <dl className="mt-8 divide-y divide-zinc-200 border-y border-zinc-200 text-sm">
         <Row label="Username" value={`@${profile.username}`} />
