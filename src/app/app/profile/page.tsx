@@ -11,7 +11,12 @@ export default async function ProfilePage() {
   if (!profile) return null;
 
   const supabase = await createClient();
-  const { data: goalRows } = await supabase.from("goals").select("type");
+  // Phase 5 RLS allows viewers to read another user's owner-scoped rows;
+  // scope explicitly so the goal pills here only reflect MY goals.
+  const { data: goalRows } = await supabase
+    .from("goals")
+    .select("type")
+    .eq("user_id", profile.id);
   const goals = (goalRows ?? []).map((g) => g.type as GoalType);
 
   const avatarUrl = await getAvatarUrl(profile.avatar_url);

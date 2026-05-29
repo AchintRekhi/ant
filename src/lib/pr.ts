@@ -17,13 +17,18 @@ type DB = SupabaseClient<Database>;
  */
 export async function recomputePRsForExercises(
   supabase: DB,
+  userId: string,
   exerciseIds: string[],
 ): Promise<void> {
   for (const exerciseId of [...new Set(exerciseIds)]) {
+    // The seeded exercise library is shared across users, so without an
+    // owner filter the Phase 5 SELECT policies would mix other people's
+    // "Bench Press" sets into our PR comparison.
     const { data: ses } = await supabase
       .from("session_exercises")
-      .select("id, workout_sessions ( started_at )")
-      .eq("exercise_id", exerciseId);
+      .select("id, workout_sessions!inner ( user_id, started_at )")
+      .eq("exercise_id", exerciseId)
+      .eq("workout_sessions.user_id", userId);
     if (!ses || ses.length === 0) continue;
 
     const startedAt = new Map(

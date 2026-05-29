@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { requireOnboardedProfile } from "@/lib/auth/dal";
 import { createClient } from "@/lib/supabase/server";
 import type { MuscleGroup } from "@/lib/exercises";
 import RoutineEditor, {
@@ -12,8 +13,11 @@ export default async function RoutineEditPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  const me = await requireOnboardedProfile();
   const supabase = await createClient();
 
+  // Scope to the signed-in user — without this, the URL of a public user's
+  // routine would open the editor as if it were our own.
   const { data: routine } = await supabase
     .from("routines")
     .select(
@@ -27,7 +31,8 @@ export default async function RoutineEditPage({
        )`,
     )
     .eq("id", id)
-    .single();
+    .eq("user_id", me.id)
+    .maybeSingle();
 
   if (!routine) notFound();
 

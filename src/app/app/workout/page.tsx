@@ -11,9 +11,14 @@ export default async function WorkoutPage() {
 
   const supabase = await createClient();
 
+  // Phase 5 added a "viewers can read public users' rows" SELECT policy on
+  // every owner-scoped table, so RLS alone no longer scopes these reads to
+  // the current user — we have to filter by user_id explicitly on every page
+  // that shows "my" data.
   const { data: routinesRaw } = await supabase
     .from("routines")
     .select("id, name, is_active, routine_days ( id, day_of_week, label )")
+    .eq("user_id", profile.id)
     .order("name");
 
   const routines: RoutineOption[] = (routinesRaw ?? []).map((r) => ({
@@ -32,6 +37,7 @@ export default async function WorkoutPage() {
        routine_days ( label ),
        session_exercises ( id, sets ( is_pr ) )`,
     )
+    .eq("user_id", profile.id)
     .order("started_at", { ascending: false })
     .limit(30);
 

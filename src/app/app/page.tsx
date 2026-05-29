@@ -14,6 +14,7 @@ export default async function DashboardPage() {
   const { data: latest } = await supabase
     .from("body_weights")
     .select("weight_kg, recorded_at")
+    .eq("user_id", profile.id)
     .order("recorded_at", { ascending: false })
     .limit(1)
     .maybeSingle();

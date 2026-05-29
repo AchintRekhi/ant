@@ -34,8 +34,18 @@ export async function evaluateBadges(supabase: Client, userId: string): Promise<
       .from("activity_log")
       .select("id", { count: "exact", head: true })
       .eq("user_id", userId),
+    // sets has no user_id of its own — without filtering through the parent
+    // session, the Phase 5 SELECT policies would let any public user's PRs
+    // satisfy "first_pr" for everyone.
     needsPr
-      ? supabase.from("sets").select("id", { count: "exact", head: true }).eq("is_pr", true)
+      ? supabase
+          .from("sets")
+          .select("id, session_exercises!inner(workout_sessions!inner(user_id))", {
+            count: "exact",
+            head: true,
+          })
+          .eq("is_pr", true)
+          .eq("session_exercises.workout_sessions.user_id", userId)
       : Promise.resolve({ count: 0 }),
   ]);
 

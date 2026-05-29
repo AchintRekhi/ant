@@ -11,19 +11,43 @@ export default async function ActivityPage() {
 
   const supabase = await createClient();
 
+  // Every owner-scoped table is now also readable by followers / public
+  // viewers (Phase 5 RLS), so we filter by user_id explicitly on every read
+  // here. `badges` is global reference data and stays unfiltered. `sets` has
+  // no user_id of its own; we filter via its session's owner with an inner
+  // join so only our PRs count.
   const [{ data: activities }, { data: defs }, { data: earned }, { data: goals }, { data: weights }, prCount] =
     await Promise.all([
       supabase
         .from("activity_log")
         .select("id, local_date, source, description")
+        .eq("user_id", profile.id)
         .order("local_date", { ascending: false })
         .order("created_at", { ascending: false })
         .limit(40),
       supabase.from("badges").select("code, name, description, sort_order").order("sort_order"),
-      supabase.from("user_badges").select("badge_code, earned_at"),
-      supabase.from("goals").select("type").eq("status", "active"),
-      supabase.from("body_weights").select("weight_kg, recorded_at").order("recorded_at"),
-      supabase.from("sets").select("id", { count: "exact", head: true }).eq("is_pr", true),
+      supabase
+        .from("user_badges")
+        .select("badge_code, earned_at")
+        .eq("user_id", profile.id),
+      supabase
+        .from("goals")
+        .select("type")
+        .eq("user_id", profile.id)
+        .eq("status", "active"),
+      supabase
+        .from("body_weights")
+        .select("weight_kg, recorded_at")
+        .eq("user_id", profile.id)
+        .order("recorded_at"),
+      supabase
+        .from("sets")
+        .select("id, session_exercises!inner(workout_sessions!inner(user_id))", {
+          count: "exact",
+          head: true,
+        })
+        .eq("is_pr", true)
+        .eq("session_exercises.workout_sessions.user_id", profile.id),
     ]);
 
   const items: ActivityItem[] = (activities ?? []).map((a) => ({

@@ -18,6 +18,8 @@ export default async function WorkoutSessionPage({
   if (!profile) return null;
 
   const supabase = await createClient();
+  // Owner-side workout editor: scope to the current user so a guessed id
+  // from a public profile can't open someone else's session in this view.
   const { data: session } = await supabase
     .from("workout_sessions")
     .select(
@@ -30,7 +32,8 @@ export default async function WorkoutSessionPage({
        )`,
     )
     .eq("id", id)
-    .single();
+    .eq("user_id", profile.id)
+    .maybeSingle();
 
   if (!session) notFound();
 

@@ -240,11 +240,15 @@ export async function finishSession(sessionId: string): Promise<WorkoutResult> {
     .from("session_exercises")
     .select("exercise_id")
     .eq("session_id", sessionId);
-  await recomputePRsForExercises(supabase, (ses ?? []).map((s) => s.exercise_id));
 
   // A finished session counts toward the activity streak (one row per session).
   const profile = await getProfile();
   if (profile) {
+    await recomputePRsForExercises(
+      supabase,
+      profile.id,
+      (ses ?? []).map((s) => s.exercise_id),
+    );
     const { data: existing } = await supabase
       .from("activity_log")
       .select("id")
@@ -282,11 +286,12 @@ export async function deleteSession(sessionId: string): Promise<WorkoutResult> {
   const { error } = await supabase.from("workout_sessions").delete().eq("id", sessionId);
   if (error) return { error: "Couldn't delete the workout." };
 
-  await recomputePRsForExercises(supabase, exerciseIds);
-
-  // The session's activity_log row cascaded away — recompute the streak.
+  // The session's activity_log row cascaded away — recompute streak + PRs.
   const profile = await getProfile();
-  if (profile) await recomputeStreak(supabase, profile.id, profile.timezone);
+  if (profile) {
+    await recomputePRsForExercises(supabase, profile.id, exerciseIds);
+    await recomputeStreak(supabase, profile.id, profile.timezone);
+  }
 
   revalidatePath("/app/workout");
   revalidatePath("/app/activity");
@@ -346,10 +351,14 @@ async function recomputeIfFinished(
 ): Promise<void> {
   const { data } = await supabase
     .from("session_exercises")
-    .select("exercise_id, workout_sessions ( ended_at )")
+    .select("exercise_id, workout_sessions ( user_id, ended_at )")
     .eq("id", seId)
     .single();
-  if (data?.workout_sessions?.ended_at) {
-    await recomputePRsForExercises(supabase, [data.exercise_id]);
+  if (data?.workout_sessions?.ended_at && data.workout_sessions.user_id) {
+    await recomputePRsForExercises(
+      supabase,
+      data.workout_sessions.user_id,
+      [data.exercise_id],
+    );
   }
 }

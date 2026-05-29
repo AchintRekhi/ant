@@ -1,14 +1,19 @@
 import Link from "next/link";
+import { requireOnboardedProfile } from "@/lib/auth/dal";
 import { createClient } from "@/lib/supabase/server";
 import { weekdayLabel } from "@/lib/days";
 import NewRoutine from "./NewRoutine";
 import SetActiveButton from "./SetActiveButton";
 
 export default async function RoutinesPage() {
+  // Phase 5 made these tables visible to followers / public-profile viewers,
+  // so we now scope explicitly to the signed-in user on every owner page.
+  const me = await requireOnboardedProfile();
   const supabase = await createClient();
   const { data: routines } = await supabase
     .from("routines")
     .select("id, name, is_active, routine_days(day_of_week)")
+    .eq("user_id", me.id)
     .order("created_at", { ascending: true });
 
   return (

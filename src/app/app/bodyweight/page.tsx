@@ -11,6 +11,7 @@ export default async function BodyweightPage() {
   const { data: rows } = await supabase
     .from("body_weights")
     .select("id, weight_kg, recorded_at")
+    .eq("user_id", profile.id)
     .order("recorded_at", { ascending: false });
 
   const isImperial = profile.units === "imperial";

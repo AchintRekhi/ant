@@ -9,14 +9,18 @@ export default async function ProgressPage() {
   if (!profile) return null;
 
   const supabase = await createClient();
+  // session_exercises has no user_id of its own — we filter on the parent
+  // workout_sessions.user_id via the embedded join so only OUR sessions
+  // contribute to the chart (Phase 5 made public users' sessions readable).
   const { data } = await supabase
     .from("session_exercises")
     .select(
       `exercise_id,
        exercises ( name ),
-       workout_sessions ( started_at ),
+       workout_sessions!inner ( user_id, started_at ),
        sets ( weight_kg, is_pr )`,
-    );
+    )
+    .eq("workout_sessions.user_id", profile.id);
 
   const isImperial = profile.units === "imperial";
   const toDisplay = (kg: number) =>
