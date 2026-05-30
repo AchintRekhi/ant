@@ -121,6 +121,94 @@ export type Database = {
         }
         Relationships: []
       }
+      challenge_participants: {
+        Row: {
+          challenge_id: string
+          final_rank: number | null
+          final_score: number | null
+          joined_at: string
+          points_awarded: number
+          user_id: string
+        }
+        Insert: {
+          challenge_id: string
+          final_rank?: number | null
+          final_score?: number | null
+          joined_at?: string
+          points_awarded?: number
+          user_id: string
+        }
+        Update: {
+          challenge_id?: string
+          final_rank?: number | null
+          final_score?: number | null
+          joined_at?: string
+          points_awarded?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "challenge_participants_challenge_id_fkey"
+            columns: ["challenge_id"]
+            isOneToOne: false
+            referencedRelation: "challenges"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      challenges: {
+        Row: {
+          created_at: string
+          creator_id: string
+          description: string | null
+          ends_at: string
+          exercise_id: string
+          finalized_at: string | null
+          id: string
+          metric: Database["public"]["Enums"]["challenge_metric"]
+          name: string
+          privacy: Database["public"]["Enums"]["challenge_privacy"]
+          starts_at: string
+          target_value: number | null
+        }
+        Insert: {
+          created_at?: string
+          creator_id: string
+          description?: string | null
+          ends_at: string
+          exercise_id: string
+          finalized_at?: string | null
+          id?: string
+          metric: Database["public"]["Enums"]["challenge_metric"]
+          name: string
+          privacy: Database["public"]["Enums"]["challenge_privacy"]
+          starts_at: string
+          target_value?: number | null
+        }
+        Update: {
+          created_at?: string
+          creator_id?: string
+          description?: string | null
+          ends_at?: string
+          exercise_id?: string
+          finalized_at?: string | null
+          id?: string
+          metric?: Database["public"]["Enums"]["challenge_metric"]
+          name?: string
+          privacy?: Database["public"]["Enums"]["challenge_privacy"]
+          starts_at?: string
+          target_value?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "challenges_exercise_id_fkey"
+            columns: ["exercise_id"]
+            isOneToOne: false
+            referencedRelation: "exercises"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       exercises: {
         Row: {
           created_at: string
@@ -270,6 +358,41 @@ export type Database = {
           username?: string | null
         }
         Relationships: []
+      }
+      reports: {
+        Row: {
+          created_at: string
+          id: string
+          reason: string
+          reporter_id: string
+          session_id: string
+          status: Database["public"]["Enums"]["report_status"]
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          reason: string
+          reporter_id: string
+          session_id: string
+          status?: Database["public"]["Enums"]["report_status"]
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          reason?: string
+          reporter_id?: string
+          session_id?: string
+          status?: Database["public"]["Enums"]["report_status"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reports_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "workout_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       routine_day_exercises: {
         Row: {
@@ -518,7 +641,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      can_view_challenge: { Args: { c_id: string }; Returns: boolean }
       can_view_user: { Args: { target: string }; Returns: boolean }
+      challenge_leaderboard: {
+        Args: { c_id: string }
+        Returns: {
+          score: number
+          user_id: string
+        }[]
+      }
+      finalize_challenge: { Args: { c_id: string }; Returns: undefined }
       is_username_available: { Args: { candidate: string }; Returns: boolean }
       search_users: {
         Args: { max_results?: number; q: string }
@@ -533,6 +665,8 @@ export type Database = {
     }
     Enums: {
       activity_source: "session" | "quick"
+      challenge_metric: "exercise_max_weight" | "exercise_total_reps"
+      challenge_privacy: "public" | "private"
       experience_level: "beginner" | "intermediate" | "advanced"
       follow_status: "pending" | "accepted"
       gender: "male" | "female" | "other" | "prefer_not_to_say"
@@ -553,6 +687,7 @@ export type Database = {
         | "full_body"
         | "other"
       privacy_level: "public" | "private"
+      report_status: "open" | "reviewed" | "dismissed"
       units_pref: "metric" | "imperial"
     }
     CompositeTypes: {
@@ -682,6 +817,8 @@ export const Constants = {
   public: {
     Enums: {
       activity_source: ["session", "quick"],
+      challenge_metric: ["exercise_max_weight", "exercise_total_reps"],
+      challenge_privacy: ["public", "private"],
       experience_level: ["beginner", "intermediate", "advanced"],
       follow_status: ["pending", "accepted"],
       gender: ["male", "female", "other", "prefer_not_to_say"],
@@ -704,6 +841,7 @@ export const Constants = {
         "other",
       ],
       privacy_level: ["public", "private"],
+      report_status: ["open", "reviewed", "dismissed"],
       units_pref: ["metric", "imperial"],
     },
   },

@@ -1,9 +1,8 @@
 import Link from "next/link";
 import { getProfile } from "@/lib/auth/dal";
 import { createClient } from "@/lib/supabase/server";
-import { ageFromDob } from "@/lib/validation";
-import { formatHeight, formatWeight } from "@/lib/units";
 import { daysSince, weighInDue } from "@/lib/bodyweight";
+import ActivityClient, { type ActivityItem } from "./activity/ActivityClient";
 
 export default async function DashboardPage() {
   // The layout already guarantees an onboarded profile; re-read is cache()'d.
@@ -13,7 +12,7 @@ export default async function DashboardPage() {
   const supabase = await createClient();
   const { data: latest } = await supabase
     .from("body_weights")
-    .select("weight_kg, recorded_at")
+    .select("recorded_at")
     .eq("user_id", profile.id)
     .order("recorded_at", { ascending: false })
     .limit(1)
@@ -27,7 +26,22 @@ export default async function DashboardPage() {
     .eq("following_id", profile.id)
     .eq("status", "pending");
 
-  const age = profile.dob ? ageFromDob(profile.dob) : null;
+  // Recent activity feeds the inline quick-log surface (moved here from the
+  // dissolved Activity tab — logging any movement is a daily action).
+  const { data: activities } = await supabase
+    .from("activity_log")
+    .select("id, local_date, source, description")
+    .eq("user_id", profile.id)
+    .order("local_date", { ascending: false })
+    .order("created_at", { ascending: false })
+    .limit(20);
+  const items: ActivityItem[] = (activities ?? []).map((a) => ({
+    id: a.id,
+    localDate: a.local_date,
+    source: a.source,
+    description: a.description,
+  }));
+
   const due = weighInDue(latest?.recorded_at);
 
   return (
@@ -36,17 +50,14 @@ export default async function DashboardPage() {
         Welcome, {profile.display_name ?? profile.username}.
       </h1>
 
-      <Link
-        href="/app/activity"
-        className="mt-6 flex items-center justify-between rounded-lg border border-black bg-zinc-50 px-5 py-4 hover:bg-zinc-100"
-      >
+      <div className="mt-6 flex items-center justify-between rounded-lg border border-black bg-zinc-50 px-5 py-4">
         <span className="text-2xl font-bold tabular-nums">
           🔥 {profile.current_streak}
         </span>
         <span className="text-sm text-zinc-500">
-          day{profile.current_streak === 1 ? "" : "s"} streak · log activity →
+          day{profile.current_streak === 1 ? "" : "s"} streak · best {profile.longest_streak}
         </span>
-      </Link>
+      </div>
 
       <Link
         href="/app/workout"
@@ -76,35 +87,7 @@ export default async function DashboardPage() {
         </Link>
       ) : null}
 
-      <dl className="mt-8 divide-y divide-zinc-200 border-y border-zinc-200 text-sm">
-        <Row label="Username" value={`@${profile.username}`} />
-        {latest && (
-          <Row
-            label="Current weight"
-            value={formatWeight(latest.weight_kg, profile.units)}
-          />
-        )}
-        {age !== null && <Row label="Age" value={String(age)} />}
-        {profile.height_cm !== null && (
-          <Row label="Height" value={formatHeight(profile.height_cm, profile.units)} />
-        )}
-        <Row label="Experience" value={capitalize(profile.experience_level ?? "—")} />
-        <Row label="Privacy" value={capitalize(profile.privacy)} />
-      </dl>
-
+      <ActivityClient items={items} />
     </div>
   );
-}
-
-function Row({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex items-center justify-between py-3">
-      <dt className="text-zinc-500">{label}</dt>
-      <dd className="font-medium">{value}</dd>
-    </div>
-  );
-}
-
-function capitalize(s: string): string {
-  return s.charAt(0).toUpperCase() + s.slice(1);
 }

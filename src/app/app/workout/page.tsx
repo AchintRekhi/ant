@@ -45,7 +45,23 @@ export default async function WorkoutPage() {
 
   return (
     <div className="mx-auto w-full max-w-md px-6 py-10">
-      <h1 className="text-2xl font-bold tracking-tight">Workout</h1>
+      <h1 className="text-2xl font-bold tracking-tight">Train</h1>
+
+      <nav className="mt-4 flex flex-wrap gap-2">
+        {[
+          { href: "/app/progress", label: "Progress" },
+          { href: "/app/routines", label: "Routines" },
+          { href: "/app/exercises", label: "Exercises" },
+        ].map((l) => (
+          <Link
+            key={l.href}
+            href={l.href}
+            className="rounded-full border border-zinc-300 px-4 py-1.5 text-sm hover:border-black"
+          >
+            {l.label}
+          </Link>
+        ))}
+      </nav>
 
       <div className="mt-6">
         <StartWorkout routines={routines} today={today} />

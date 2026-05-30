@@ -4,14 +4,9 @@ import { logout } from "../(auth)/actions";
 
 const NAV = [
   { href: "/app", label: "Home" },
-  { href: "/app/workout", label: "Workout" },
-  { href: "/app/activity", label: "Activity" },
-  { href: "/app/progress", label: "Progress" },
-  { href: "/app/routines", label: "Routines" },
-  { href: "/app/exercises", label: "Exercises" },
-  { href: "/app/bodyweight", label: "Bodyweight" },
+  { href: "/app/workout", label: "Train" },
+  { href: "/app/challenges", label: "Challenges" },
   { href: "/app/explore", label: "Explore" },
-  { href: "/app/social", label: "People" },
   { href: "/app/profile", label: "Profile" },
 ];
 
