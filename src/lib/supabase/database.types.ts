@@ -345,6 +345,41 @@ export type Database = {
         }
         Relationships: []
       }
+      reports: {
+        Row: {
+          created_at: string
+          id: string
+          reason: string
+          reporter_id: string
+          session_id: string
+          status: Database["public"]["Enums"]["report_status"]
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          reason: string
+          reporter_id: string
+          session_id: string
+          status?: Database["public"]["Enums"]["report_status"]
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          reason?: string
+          reporter_id?: string
+          session_id?: string
+          status?: Database["public"]["Enums"]["report_status"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reports_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "workout_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       routine_day_exercises: {
         Row: {
           exercise_id: string
@@ -638,6 +673,7 @@ export type Database = {
         | "full_body"
         | "other"
       privacy_level: "public" | "private"
+      report_status: "open" | "reviewed" | "dismissed"
       units_pref: "metric" | "imperial"
     }
     CompositeTypes: {
@@ -791,6 +827,7 @@ export const Constants = {
         "other",
       ],
       privacy_level: ["public", "private"],
+      report_status: ["open", "reviewed", "dismissed"],
       units_pref: ["metric", "imperial"],
     },
   },

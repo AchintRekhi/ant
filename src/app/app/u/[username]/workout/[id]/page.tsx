@@ -6,6 +6,7 @@ import { getWorkoutPhotoUrl } from "@/lib/storage";
 import { canViewUser } from "@/lib/social";
 import { activeSeconds, formatDuration } from "@/lib/duration";
 import { formatWeight } from "@/lib/units";
+import ReportPhoto from "./ReportPhoto";
 
 type Params = Promise<{ username: string; id: string }>;
 
@@ -89,9 +90,13 @@ export default async function PublicWorkoutPage({ params }: { params: Params }) 
       </p>
 
       {photoUrl && (
-        <div className="mt-6 overflow-hidden rounded-lg border border-zinc-200">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={photoUrl} alt="" className="w-full" />
+        <div className="mt-6">
+          <div className="overflow-hidden rounded-lg border border-zinc-200">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={photoUrl} alt="" className="w-full" />
+          </div>
+          {/* Moderation affordance — only on someone else's photo. */}
+          {session.user_id !== viewer.id && <ReportPhoto sessionId={session.id} />}
         </div>
       )}
 
