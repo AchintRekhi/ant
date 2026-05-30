@@ -30,6 +30,7 @@ export async function addBodyWeight(
   if (error) return { error: "Couldn't save that entry. Please try again." };
 
   revalidatePath("/app/bodyweight");
+  revalidatePath("/app/profile");
   revalidatePath("/app");
   return { ok: true };
 }
@@ -48,6 +49,7 @@ export async function deleteBodyWeight(id: string): Promise<WeightResult> {
   if (error) return { error: "Couldn't delete that entry." };
 
   revalidatePath("/app/bodyweight");
+  revalidatePath("/app/profile");
   revalidatePath("/app");
   return { ok: true };
 }

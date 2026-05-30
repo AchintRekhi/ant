@@ -32,7 +32,7 @@ export async function quickLogActivity(description: string): Promise<ActivityRes
   await recomputeStreak(supabase, profile.id, profile.timezone);
   await evaluateBadges(supabase, profile.id);
 
-  revalidatePath("/app/activity");
+  revalidatePath("/app/profile");
   revalidatePath("/app");
   return { ok: true };
 }
@@ -52,7 +52,7 @@ export async function deleteActivity(id: string): Promise<ActivityResult> {
 
   await recomputeStreak(supabase, profile.id, profile.timezone);
 
-  revalidatePath("/app/activity");
+  revalidatePath("/app/profile");
   revalidatePath("/app");
   return { ok: true };
 }

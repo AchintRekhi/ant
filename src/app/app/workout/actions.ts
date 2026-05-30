@@ -267,7 +267,7 @@ export async function finishSession(sessionId: string): Promise<WorkoutResult> {
   }
 
   revalidatePath("/app/workout");
-  revalidatePath("/app/activity");
+  revalidatePath("/app/profile");
   revalidatePath("/app");
   revalidatePath(`/app/workout/${sessionId}`);
   redirect(`/app/workout/${sessionId}`);
@@ -294,7 +294,7 @@ export async function deleteSession(sessionId: string): Promise<WorkoutResult> {
   }
 
   revalidatePath("/app/workout");
-  revalidatePath("/app/activity");
+  revalidatePath("/app/profile");
   revalidatePath("/app");
   redirect("/app/workout");
 }
