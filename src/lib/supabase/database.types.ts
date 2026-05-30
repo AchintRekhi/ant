@@ -162,38 +162,52 @@ export type Database = {
           creator_id: string
           description: string | null
           ends_at: string
+          exercise_id: string
           finalized_at: string | null
           id: string
           metric: Database["public"]["Enums"]["challenge_metric"]
           name: string
           privacy: Database["public"]["Enums"]["challenge_privacy"]
           starts_at: string
+          target_value: number | null
         }
         Insert: {
           created_at?: string
           creator_id: string
           description?: string | null
           ends_at: string
+          exercise_id: string
           finalized_at?: string | null
           id?: string
           metric: Database["public"]["Enums"]["challenge_metric"]
           name: string
           privacy: Database["public"]["Enums"]["challenge_privacy"]
           starts_at: string
+          target_value?: number | null
         }
         Update: {
           created_at?: string
           creator_id?: string
           description?: string | null
           ends_at?: string
+          exercise_id?: string
           finalized_at?: string | null
           id?: string
           metric?: Database["public"]["Enums"]["challenge_metric"]
           name?: string
           privacy?: Database["public"]["Enums"]["challenge_privacy"]
           starts_at?: string
+          target_value?: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "challenges_exercise_id_fkey"
+            columns: ["exercise_id"]
+            isOneToOne: false
+            referencedRelation: "exercises"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       exercises: {
         Row: {
@@ -651,7 +665,7 @@ export type Database = {
     }
     Enums: {
       activity_source: "session" | "quick"
-      challenge_metric: "active_days" | "total_volume" | "longest_streak"
+      challenge_metric: "exercise_max_weight" | "exercise_total_reps"
       challenge_privacy: "public" | "private"
       experience_level: "beginner" | "intermediate" | "advanced"
       follow_status: "pending" | "accepted"
@@ -803,7 +817,7 @@ export const Constants = {
   public: {
     Enums: {
       activity_source: ["session", "quick"],
-      challenge_metric: ["active_days", "total_volume", "longest_streak"],
+      challenge_metric: ["exercise_max_weight", "exercise_total_reps"],
       challenge_privacy: ["public", "private"],
       experience_level: ["beginner", "intermediate", "advanced"],
       follow_status: ["pending", "accepted"],

@@ -2,16 +2,25 @@ import { kgToLbs, type Units } from "@/lib/units";
 
 // Single source of truth for the metric-facing copy. The DB enum stays the
 // authoritative type — these are just labels for the UI.
-export type Metric = "active_days" | "total_volume" | "longest_streak";
+//
+// Every challenge targets one exercise; the metric decides how that exercise is
+// scored over the window:
+//   exercise_max_weight  → heaviest single set (MAX weight_kg)
+//   exercise_total_reps  → total reps logged (SUM reps)
+export type Metric = "exercise_max_weight" | "exercise_total_reps";
 
 export const METRICS: { value: Metric; label: string; tagline: string }[] = [
-  { value: "active_days",    label: "Most active days",   tagline: "Distinct days with any activity in the window." },
-  { value: "total_volume",   label: "Highest total volume", tagline: "Sum of reps × weight across the window." },
-  { value: "longest_streak", label: "Longest streak in window", tagline: "Most consecutive active days inside the window." },
+  { value: "exercise_max_weight", label: "Heaviest weight", tagline: "Rank by your top single-set weight on this exercise." },
+  { value: "exercise_total_reps", label: "Total reps",      tagline: "Rank by total reps logged on this exercise in the window." },
 ];
 
 export function metricLabel(m: Metric): string {
   return METRICS.find((x) => x.value === m)?.label ?? m;
+}
+
+/** Whether the metric is measured in weight (vs. a raw rep count). */
+export function isWeightMetric(m: Metric): boolean {
+  return m === "exercise_max_weight";
 }
 
 /** Status label derived from the date window and finalized_at. */
@@ -35,19 +44,26 @@ export function daysBetween(a: string, b: string): number {
   return Math.max(0, Math.round(ms / 86_400_000));
 }
 
-/** Format a score for display, depending on the metric (and weight units). */
-export function formatScore(metric: Metric, score: number, units: Units): string {
-  if (metric === "active_days") {
-    return `${Math.round(score)} day${score === 1 ? "" : "s"}`;
+/** Format a score/target value for display, per metric (and weight units). */
+export function formatScore(metric: Metric, value: number, units: Units): string {
+  if (isWeightMetric(metric)) {
+    // score is in kg (DB is metric); convert at the UI layer only.
+    const display = units === "imperial" ? kgToLbs(value) : value;
+    const unit = units === "imperial" ? "lb" : "kg";
+    return `${Math.round(display).toLocaleString()} ${unit}`;
   }
-  if (metric === "longest_streak") {
-    return `${Math.round(score)} day${score === 1 ? "" : "s"}`;
-  }
-  // total_volume — score is sum(reps * weight_kg).
-  const display = units === "imperial" ? kgToLbs(score) : score;
-  const rounded = Math.round(display);
-  const unit = units === "imperial" ? "lb" : "kg";
-  return `${rounded.toLocaleString()} ${unit}`;
+  // exercise_total_reps — a raw count.
+  const reps = Math.round(value);
+  return `${reps.toLocaleString()} rep${reps === 1 ? "" : "s"}`;
+}
+
+/** Alias for readability when formatting a challenge's optional target value. */
+export const formatTarget = formatScore;
+
+/** Fraction [0,1] of the way a score is toward the target. */
+export function targetProgress(score: number, target: number): number {
+  if (!target || target <= 0) return 0;
+  return Math.max(0, Math.min(1, score / target));
 }
 
 /** Points awarded by final rank — mirrored from finalize_challenge(). */

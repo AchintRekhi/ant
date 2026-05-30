@@ -8,6 +8,7 @@ type Row = {
   id: string;
   name: string;
   metric: Metric;
+  exercise_id: string;
   privacy: "public" | "private";
   starts_at: string;
   ends_at: string;
@@ -24,7 +25,7 @@ export default async function ChallengesPage() {
   const { data: mineRows } = await supabase
     .from("challenge_participants")
     .select(
-      "challenge_id, challenges!inner(id, name, metric, privacy, starts_at, ends_at, finalized_at, creator_id)",
+      "challenge_id, challenges!inner(id, name, metric, exercise_id, privacy, starts_at, ends_at, finalized_at, creator_id)",
     )
     .eq("user_id", me.id)
     .order("joined_at", { ascending: false });
@@ -37,12 +38,19 @@ export default async function ChallengesPage() {
 
   const { data: publicRows } = await supabase
     .from("challenges")
-    .select("id, name, metric, privacy, starts_at, ends_at, finalized_at, creator_id")
+    .select("id, name, metric, exercise_id, privacy, starts_at, ends_at, finalized_at, creator_id")
     .eq("privacy", "public")
     .order("starts_at", { ascending: false })
     .limit(20);
 
   const discover: Row[] = (publicRows ?? []).filter((c) => !mineIds.has(c.id));
+
+  // Resolve exercise names for every card in one query.
+  const exerciseIds = [...new Set([...mine, ...discover].map((c) => c.exercise_id))];
+  const { data: exRows } = exerciseIds.length
+    ? await supabase.from("exercises").select("id, name").in("id", exerciseIds)
+    : { data: [] };
+  const exerciseName = new Map((exRows ?? []).map((e) => [e.id, e.name]));
 
   return (
     <div className="mx-auto w-full max-w-md px-6 py-10">
@@ -53,7 +61,8 @@ export default async function ChallengesPage() {
         </Link>
       </div>
       <p className="mt-1 text-sm text-zinc-500">
-        Compete with friends or the wider community on activity, volume, or streak.
+        Compete with friends or the wider community on a lift's heaviest weight or
+        total reps.
       </p>
 
       <Section title="Yours">
@@ -65,7 +74,7 @@ export default async function ChallengesPage() {
           <ul className="flex flex-col gap-2">
             {mine.map((c) => (
               <li key={c.id}>
-                <ChallengeCard row={c} />
+                <ChallengeCard row={c} exerciseName={exerciseName.get(c.exercise_id)} />
               </li>
             ))}
           </ul>
@@ -79,7 +88,7 @@ export default async function ChallengesPage() {
           <ul className="flex flex-col gap-2">
             {discover.map((c) => (
               <li key={c.id}>
-                <ChallengeCard row={c} />
+                <ChallengeCard row={c} exerciseName={exerciseName.get(c.exercise_id)} />
               </li>
             ))}
           </ul>
@@ -100,7 +109,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
-function ChallengeCard({ row }: { row: Row }) {
+function ChallengeCard({ row, exerciseName }: { row: Row; exerciseName?: string }) {
   const status = challengeStatus({
     startsAt:    row.starts_at,
     endsAt:      row.ends_at,
@@ -116,6 +125,7 @@ function ChallengeCard({ row }: { row: Row }) {
         <StatusPill status={status} />
       </div>
       <div className="mt-0.5 text-sm text-zinc-500">
+        {exerciseName ? `${exerciseName} · ` : ""}
         {metricLabel(row.metric)} ·{" "}
         {row.privacy === "private" ? "Private" : "Public"} ·{" "}
         {fmt(row.starts_at)} – {fmt(row.ends_at)}

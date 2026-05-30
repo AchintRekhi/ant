@@ -13,7 +13,9 @@ const createSchema = z.object({
   name:        z.string().trim().min(1, "Give it a name.").max(80),
   description: z.string().trim().max(280).optional(),
   privacy:     z.enum(["public", "private"]),
-  metric:      z.enum(["active_days", "total_volume", "longest_streak"]),
+  metric:      z.enum(["exercise_max_weight", "exercise_total_reps"]),
+  exerciseId:  z.string().uuid("Pick an exercise."),
+  targetValue: z.number().positive().optional(),
   startsAt:    z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Pick a start date."),
   endsAt:      z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Pick an end date."),
 });
@@ -38,13 +40,15 @@ export async function createChallenge(
   const { data: row, error } = await supabase
     .from("challenges")
     .insert({
-      creator_id:  user.id,
-      name:        d.name,
-      description: d.description || null,
-      privacy:     d.privacy,
-      metric:      d.metric,
-      starts_at:   d.startsAt,
-      ends_at:     d.endsAt,
+      creator_id:   user.id,
+      name:         d.name,
+      description:  d.description || null,
+      privacy:      d.privacy,
+      metric:       d.metric,
+      exercise_id:  d.exerciseId,
+      target_value: d.targetValue ?? null,
+      starts_at:    d.startsAt,
+      ends_at:      d.endsAt,
     })
     .select("id")
     .single();
@@ -139,7 +143,7 @@ export async function finalizeChallenge(challengeId: string): Promise<ChallengeR
 
   revalidatePath(`/app/challenges/${challengeId}`);
   revalidatePath("/app/challenges");
-  revalidatePath("/app/activity");
+  revalidatePath("/app/profile");
   revalidatePath("/app");
   return { ok: true };
 }

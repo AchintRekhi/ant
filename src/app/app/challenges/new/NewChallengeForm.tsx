@@ -1,8 +1,10 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { Button, FormError, inputClasses } from "@/components/ui";
-import { METRICS, type Metric } from "@/lib/challenges";
+import { METRICS, isWeightMetric, type Metric } from "@/lib/challenges";
+import { muscleGroupLabel, type MuscleGroup } from "@/lib/exercises";
+import { lbsToKg, type Units } from "@/lib/units";
 import { createChallenge } from "../actions";
 
 const todayIso = () => new Date().toISOString().slice(0, 10);
@@ -13,12 +15,22 @@ const inDaysIso = (days: number) => {
 };
 
 type Privacy = "public" | "private";
+type ExerciseOption = { id: string; name: string; muscle_group: MuscleGroup };
 
-export default function NewChallengeForm() {
+export default function NewChallengeForm({
+  exercises,
+  units,
+}: {
+  exercises: ExerciseOption[];
+  units: Units;
+}) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [privacy, setPrivacy] = useState<Privacy>("private");
-  const [metric, setMetric] = useState<Metric>("active_days");
+  const [metric, setMetric] = useState<Metric>("exercise_max_weight");
+  const [exerciseId, setExerciseId] = useState<string>("");
+  const [exerciseSearch, setExerciseSearch] = useState("");
+  const [target, setTarget] = useState("");
   // Default: a one-week window starting today. People tend to want short
   // first runs; tightening the default keeps that easy.
   const [startsAt, setStartsAt] = useState(todayIso());
@@ -27,14 +39,41 @@ export default function NewChallengeForm() {
   const [error, setError] = useState<string | undefined>();
   const [pending, startTransition] = useTransition();
 
+  const selectedExercise = exercises.find((e) => e.id === exerciseId);
+  const filtered = useMemo(() => {
+    const q = exerciseSearch.trim().toLowerCase();
+    const list = q
+      ? exercises.filter((e) => e.name.toLowerCase().includes(q))
+      : exercises;
+    return list.slice(0, 30);
+  }, [exercises, exerciseSearch]);
+
+  const weightMetric = isWeightMetric(metric);
+  const targetUnit = weightMetric ? (units === "imperial" ? "lb" : "kg") : "reps";
+
   const submit = () => {
     setError(undefined);
+
+    // Target is optional. Convert weight targets to kg (the DB stores metric).
+    let targetValue: number | undefined;
+    const raw = target.trim();
+    if (raw) {
+      const n = Number(raw);
+      if (!Number.isFinite(n) || n <= 0) {
+        setError("Target must be a positive number, or leave it blank.");
+        return;
+      }
+      targetValue = weightMetric && units === "imperial" ? lbsToKg(n) : n;
+    }
+
     startTransition(async () => {
       const result = await createChallenge({
         name,
         description: description.trim() || undefined,
         privacy,
         metric,
+        exerciseId,
+        targetValue,
         startsAt,
         endsAt,
       });
@@ -50,7 +89,7 @@ export default function NewChallengeForm() {
         <input
           value={name}
           onChange={(e) => setName(e.target.value)}
-          placeholder="June 50-day push"
+          placeholder="June 2000-rep push"
           maxLength={80}
           className={inputClasses}
         />
@@ -68,6 +107,94 @@ export default function NewChallengeForm() {
       </Field>
 
       <Field
+        label="Exercise"
+        hint={
+          selectedExercise
+            ? `Scoring is based on your logged ${selectedExercise.name} sets.`
+            : "Pick the lift this challenge competes on."
+        }
+      >
+        {selectedExercise ? (
+          <div className="flex items-center justify-between rounded-lg border border-black px-4 py-3">
+            <span>
+              <span className="font-medium">{selectedExercise.name}</span>
+              <span className="ml-2 text-xs uppercase tracking-wider text-zinc-400">
+                {muscleGroupLabel(selectedExercise.muscle_group)}
+              </span>
+            </span>
+            <button
+              type="button"
+              onClick={() => {
+                setExerciseId("");
+                setExerciseSearch("");
+              }}
+              className="text-sm text-zinc-500 underline hover:text-black"
+            >
+              Change
+            </button>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-2">
+            <input
+              value={exerciseSearch}
+              onChange={(e) => setExerciseSearch(e.target.value)}
+              placeholder="Search exercises…"
+              className={inputClasses}
+            />
+            <div className="flex max-h-56 flex-col gap-1 overflow-y-auto">
+              {filtered.length === 0 ? (
+                <p className="px-1 py-2 text-sm text-zinc-400">No matches.</p>
+              ) : (
+                filtered.map((e) => (
+                  <button
+                    key={e.id}
+                    type="button"
+                    onClick={() => setExerciseId(e.id)}
+                    className="flex items-center justify-between rounded-lg border border-zinc-200 px-4 py-2 text-left text-sm hover:border-black"
+                  >
+                    <span>{e.name}</span>
+                    <span className="text-xs uppercase tracking-wider text-zinc-400">
+                      {muscleGroupLabel(e.muscle_group)}
+                    </span>
+                  </button>
+                ))
+              )}
+            </div>
+          </div>
+        )}
+      </Field>
+
+      <Field label="Metric" hint={tagline}>
+        <Pills
+          options={METRICS.map((m) => ({ value: m.value, label: m.label }))}
+          value={metric}
+          onChange={setMetric}
+        />
+      </Field>
+
+      <Field
+        label={`Target (optional)`}
+        hint={
+          weightMetric
+            ? "Set a goal weight to race toward, or leave blank to just rank highest."
+            : "Set a goal rep count to race toward, or leave blank to just rank highest."
+        }
+      >
+        <div className="flex items-center gap-2">
+          <input
+            type="number"
+            inputMode="decimal"
+            min={0}
+            value={target}
+            onChange={(e) => setTarget(e.target.value)}
+            placeholder={weightMetric ? "100" : "2000"}
+            className={inputClasses}
+          />
+          <span className="text-sm text-zinc-500">{targetUnit}</span>
+        </div>
+      </Field>
+
+      <Field
         label="Privacy"
         hint={
           privacy === "private"
@@ -82,14 +209,6 @@ export default function NewChallengeForm() {
           ]}
           value={privacy}
           onChange={setPrivacy}
-        />
-      </Field>
-
-      <Field label="Metric" hint={tagline}>
-        <Pills
-          options={METRICS.map((m) => ({ value: m.value, label: m.label }))}
-          value={metric}
-          onChange={setMetric}
         />
       </Field>
 
@@ -118,7 +237,7 @@ export default function NewChallengeForm() {
         <FormError message={error} />
         <Button
           onClick={submit}
-          disabled={pending || name.trim().length === 0}
+          disabled={pending || name.trim().length === 0 || !exerciseId}
         >
           {pending ? "Creating…" : "Create challenge"}
         </Button>

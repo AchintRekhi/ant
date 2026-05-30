@@ -7,8 +7,10 @@ import {
   challengeStatus,
   daysBetween,
   formatScore,
+  formatTarget,
   metricLabel,
   pointsForRank,
+  targetProgress,
   type Metric,
 } from "@/lib/challenges";
 import { finalizeChallenge } from "../actions";
@@ -25,11 +27,18 @@ export default async function ChallengePage({ params }: { params: Params }) {
   const { data: c } = await supabase
     .from("challenges")
     .select(
-      "id, name, description, privacy, metric, starts_at, ends_at, finalized_at, creator_id",
+      "id, name, description, privacy, metric, exercise_id, target_value, starts_at, ends_at, finalized_at, creator_id",
     )
     .eq("id", id)
     .maybeSingle();
   if (!c) notFound();
+
+  const { data: exercise } = await supabase
+    .from("exercises")
+    .select("name")
+    .eq("id", c.exercise_id)
+    .maybeSingle();
+  const exerciseName = exercise?.name ?? "Unknown exercise";
 
   // Auto-finalize once the window is over. The SQL is idempotent and the
   // first viewer after ends_at pays the cost; subsequent views see the
@@ -120,9 +129,14 @@ export default async function ChallengePage({ params }: { params: Params }) {
 
       <h1 className="mt-2 text-2xl font-bold tracking-tight">{c.name}</h1>
       <p className="mt-1 text-sm text-zinc-500">
-        {metricLabel(c.metric as Metric)} ·{" "}
+        {exerciseName} · {metricLabel(c.metric as Metric)} ·{" "}
         {c.privacy === "private" ? "Private" : "Public"} · {fmt(c.starts_at)} – {fmt(c.ends_at)}
       </p>
+      {c.target_value != null && (
+        <p className="mt-2 text-sm font-medium">
+          🎯 Target: {formatTarget(c.metric as Metric, Number(c.target_value), me.units)}
+        </p>
+      )}
       {c.description && (
         <p className="mt-3 whitespace-pre-line rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm">
           {c.description}
@@ -176,6 +190,11 @@ export default async function ChallengePage({ params }: { params: Params }) {
                 <div className="text-sm font-medium tabular-nums">
                   {formatScore(c.metric as Metric, p.score, me.units)}
                 </div>
+                {c.target_value != null && (
+                  <div className="text-[10px] uppercase tracking-wider text-zinc-400">
+                    {Math.round(targetProgress(p.score, Number(c.target_value)) * 100)}% of target
+                  </div>
+                )}
                 {c.finalized_at && (
                   <div className="text-[10px] uppercase tracking-wider text-zinc-400">
                     +{p.points_awarded ?? pointsForRank(p.final_rank ?? 0)} pts
